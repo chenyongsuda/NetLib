@@ -9,6 +9,9 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.timeout.IdleStateHandler;
 
 import java.net.InetSocketAddress;
 
@@ -31,6 +34,15 @@ public class NettyRemoteServer implements RemoteService {
                         .childHandler(new ChannelInitializer<SocketChannel>() {
                             @Override
                             public void initChannel(SocketChannel ch) throws Exception {
+                                //Decode
+                                ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024,0,2,0,2));
+                                ch.pipeline().addLast(new MsgPackageDecoding());
+
+                                //Encode
+                                ch.pipeline().addLast(new LengthFieldPrepender(2));
+                                ch.pipeline().addLast(new MsgPackageEncoding());
+                                ch.pipeline().addLast(new IdleStateHandler(0,0,5));
+                                ch.pipeline().addLast(new NettyConnectHandler());
                                 ch.pipeline().addLast(new NettyServerHandler());
                             }
                         });

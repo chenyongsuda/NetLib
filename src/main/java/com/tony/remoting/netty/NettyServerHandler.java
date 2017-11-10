@@ -9,6 +9,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 /**
  * Created by chnho02796 on 2017/10/31.
  */
+
 public class NettyServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {

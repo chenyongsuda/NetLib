@@ -12,5 +12,8 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Maven: io.netty:netty-all:4.1.16.Final" level="project" />
+    <orderEntry type="library" name="Maven: org.msgpack:msgpack:0.6.12" level="project" />
+    <orderEntry type="library" name="Maven: com.googlecode.json-simple:json-simple:1.1.1" level="project" />
+    <orderEntry type="library" name="Maven: org.javassist:javassist:3.18.1-GA" level="project" />
   </component>
 </module>

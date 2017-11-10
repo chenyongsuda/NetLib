@@ -1,7 +1,6 @@
 package com.tony.remoting.netty;
 
 import com.tony.remoting.absinterface.RemoteClient;
-import com.tony.remoting.absinterface.RemoteService;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -9,6 +8,9 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.timeout.IdleStateHandler;
 
 /**
  * Created by chnho02796 on 2017/10/31.
@@ -35,8 +37,16 @@ public class NettyRemoteClient implements RemoteClient {
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) throws Exception {
-                        ch.pipeline().addLast(
-                                new NettyClientHandler());
+                                //Decode
+                                ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(1024,0,2,0,2));
+                                ch.pipeline().addLast(new MsgPackageDecoding());
+
+                                //Encode
+                                ch.pipeline().addLast(new LengthFieldPrepender(2));
+                                ch.pipeline().addLast(new MsgPackageEncoding());
+                                ch.pipeline().addLast(new IdleStateHandler(0,0,5));
+                                ch.pipeline().addLast(new NettyConnectHandler());
+                                ch.pipeline().addLast(new NettyClientHandler());
                     }
                 });
 
