@@ -25,4 +25,12 @@ public class RemoteCommand {
     public void setInfos(String infos) {
         this.infos = infos;
     }
+
+    @Override
+    public String toString() {
+        return "RemoteCommand{" +
+                "type='" + type + '\'' +
+                ", infos='" + infos + '\'' +
+                '}';
+    }
 }

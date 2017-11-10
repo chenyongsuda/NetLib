@@ -1,6 +1,7 @@
 package com.tony.remoting.netty;
 
 import com.tony.remoting.absinterface.RemoteClient;
+import com.tony.remoting.protocal.RemoteCommand;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -62,6 +63,15 @@ public class NettyRemoteClient implements RemoteClient {
     public void SendRequest(String msg){
         try {
             this.channel.writeAndFlush(getSendByteBuf(msg)).sync();
+        } catch (Exception e) {
+            System.out.println("send message error");
+            e.printStackTrace();
+        }
+    }
+
+    public void SendRequest(RemoteCommand msg){
+        try {
+            this.channel.writeAndFlush(msg).sync();
         } catch (Exception e) {
             System.out.println("send message error");
             e.printStackTrace();

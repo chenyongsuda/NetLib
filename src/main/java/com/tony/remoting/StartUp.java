@@ -2,6 +2,7 @@ package com.tony.remoting;
 
 import com.tony.remoting.netty.NettyRemoteClient;
 import com.tony.remoting.netty.NettyRemoteServer;
+import com.tony.remoting.protocal.RemoteCommand;
 
 import java.util.concurrent.Callable;
 
@@ -32,8 +33,16 @@ public class StartUp {
 
         for (int i = 1; i< 100; i++){
             try {
-                Thread.sleep(2000);
-                client.SendRequest("This message is "+ i);
+                if (i == 6){
+                    Thread.sleep(10000);
+                }
+                else {
+                    Thread.sleep(2000);
+                }
+                RemoteCommand cmd = new RemoteCommand();
+                cmd.setType("1");
+                cmd.setInfos("hahahahaha");
+                client.SendRequest(cmd);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

@@ -25,7 +25,7 @@ public class NettyConnectHandler extends ChannelInboundHandlerAdapter {
         if (evt instanceof IdleStateEvent) {
             IdleStateEvent event = (IdleStateEvent) evt;
             if (event.state().equals(IdleState.ALL_IDLE)) {
-
+                
             }
         }
         super.userEventTriggered(ctx, evt);
