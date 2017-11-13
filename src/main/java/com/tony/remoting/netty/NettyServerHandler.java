@@ -1,6 +1,7 @@
 package com.tony.remoting.netty;
 
 import com.tony.remoting.protocal.RemoteCommand;
+import com.tony.remoting.protocal.body.HelloRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -22,6 +23,10 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
 //        System.out.println("收到客户端消息:"+body);
 //      ctx.write(Unpooled.copiedBuffer(calrResult.getBytes()));
         RemoteCommand cmd = (RemoteCommand) msg;
+        if (cmd.getType().equals("1")){
+            HelloRequest req = MsgPackageDecoding.DecodeBody(HelloRequest.class,cmd);
+            System.out.println("收到客户端HelloRequest消息:"+req.getName());
+        }
         System.out.println("收到客户端消息:"+cmd);
     }
 

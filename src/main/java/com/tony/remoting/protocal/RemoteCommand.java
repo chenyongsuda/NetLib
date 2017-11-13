@@ -9,6 +9,7 @@ import org.msgpack.annotation.Message;
 public class RemoteCommand {
     private String type;
     private String infos;
+    private byte[] body;
 
     public String getType() {
         return type;
@@ -24,6 +25,14 @@ public class RemoteCommand {
 
     public void setInfos(String infos) {
         this.infos = infos;
+    }
+
+    public byte[] getBody() {
+        return body;
+    }
+
+    public void setBody(byte[] body) {
+        this.body = body;
     }
 
     @Override

@@ -1,8 +1,10 @@
 package com.tony.remoting;
 
+import com.tony.remoting.netty.MsgPackageEncoding;
 import com.tony.remoting.netty.NettyRemoteClient;
 import com.tony.remoting.netty.NettyRemoteServer;
 import com.tony.remoting.protocal.RemoteCommand;
+import com.tony.remoting.protocal.body.HelloRequest;
 
 import java.util.concurrent.Callable;
 
@@ -42,8 +44,11 @@ public class StartUp {
                 RemoteCommand cmd = new RemoteCommand();
                 cmd.setType("1");
                 cmd.setInfos("hahahahaha");
+                HelloRequest req = new HelloRequest();
+                req.setName("tony");
+                MsgPackageEncoding.EncodeBody(req,cmd);
                 client.SendRequest(cmd);
-            } catch (InterruptedException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
