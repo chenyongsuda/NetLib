@@ -42,12 +42,16 @@ public class StartUp {
                     Thread.sleep(2000);
                 }
                 RemoteCommand cmd = new RemoteCommand();
+                cmd.setReq(true);
                 cmd.setType("1");
                 cmd.setInfos("hahahahaha");
                 HelloRequest req = new HelloRequest();
                 req.setName("tony");
                 MsgPackageEncoding.EncodeBody(req,cmd);
-                client.SendRequest(cmd);
+//                client.SendRequest(cmd);
+                long start = System.currentTimeMillis();
+                RemoteCommand resp = client.sendRequestSync(cmd,2000);
+                System.out.println("Time:" +(System.currentTimeMillis() - start));
             } catch (Exception e) {
                 e.printStackTrace();
             }

@@ -1,6 +1,10 @@
 package com.tony.remoting.netty;
 
+import com.tony.remoting.absinterface.InvokeCallback;
 import com.tony.remoting.absinterface.RemoteClient;
+import com.tony.remoting.absinterface.RemotingAbstract;
+import com.tony.remoting.exception.RemotingSendRequestException;
+import com.tony.remoting.exception.RemotingTimeoutException;
 import com.tony.remoting.protocal.RemoteCommand;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -16,7 +20,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 /**
  * Created by chnho02796 on 2017/10/31.
  */
-public class NettyRemoteClient implements RemoteClient {
+public class NettyRemoteClient extends RemotingAbstract implements RemoteClient {
 
     private EventLoopGroup eventLoopGroupWorker;
     private Bootstrap bootstrap;
@@ -109,5 +113,26 @@ public class NettyRemoteClient implements RemoteClient {
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    public RemoteCommand sendRequestSync(RemoteCommand request, long timeoutMills) throws RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
+        return super.sendRequestSync(this.channel, request, timeoutMills);
+    }
+
+    public void sendRequestAsync(RemoteCommand request, long timeoutMills, InvokeCallback callback) {
+        super.sendRequestAsync(this.channel, request, timeoutMills, callback);
+    }
+
+    public void sendRequestOneWay(RemoteCommand request, long timeoutMills) {
+        super.sendRequestOneWay(this.channel, request, timeoutMills);
+    }
+
+
+    class NettyClientHandler extends ChannelInboundHandlerAdapter {
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            RemoteCommand cmd = (RemoteCommand) msg;
+            processCMD(ctx,cmd);
+        }
     }
 }

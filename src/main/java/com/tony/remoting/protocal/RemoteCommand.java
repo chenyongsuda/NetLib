@@ -1,5 +1,6 @@
 package com.tony.remoting.protocal;
 
+import com.tony.remoting.absinterface.RemotingAbstract;
 import org.msgpack.annotation.Message;
 
 /**
@@ -7,9 +8,23 @@ import org.msgpack.annotation.Message;
  */
 @org.msgpack.annotation.Message
 public class RemoteCommand {
+    private int reqID = RemotingAbstract.requestId.addAndGet(1);
+    private boolean isReq = true;
     private String type;
     private String infos;
     private byte[] body;
+
+    public int getReqID() {
+        return reqID;
+    }
+
+    public boolean isReq() {
+        return isReq;
+    }
+
+    public void setReq(boolean req) {
+        isReq = req;
+    }
 
     public String getType() {
         return type;

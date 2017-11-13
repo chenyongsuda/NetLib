@@ -1,11 +1,11 @@
 package com.tony.remoting.netty;
 
 import com.tony.remoting.absinterface.RemoteService;
+import com.tony.remoting.absinterface.RemotingAbstract;
+import com.tony.remoting.protocal.RemoteCommand;
+import com.tony.remoting.protocal.body.HelloRequest;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -18,7 +18,7 @@ import java.net.InetSocketAddress;
 /**
  * Created by chnho02796 on 2017/10/31.
  */
-public class NettyRemoteServer implements RemoteService {
+public class NettyRemoteServer extends RemotingAbstract implements RemoteService {
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private ServerBootstrap bp;
@@ -72,5 +72,14 @@ public class NettyRemoteServer implements RemoteService {
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+
+    class NettyServerHandler extends ChannelInboundHandlerAdapter {
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            RemoteCommand cmd = (RemoteCommand) msg;
+            processCMD(ctx,cmd);
+        }
     }
 }
