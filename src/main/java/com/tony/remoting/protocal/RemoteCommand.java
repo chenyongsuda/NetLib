@@ -10,10 +10,18 @@ import org.msgpack.annotation.Message;
 public class RemoteCommand {
     private int reqID = RemotingAbstract.requestId.addAndGet(1);
     private boolean isReq = true;
-    private String type;
+    private int type;
     private String infos;
     private byte[] body;
+    private boolean oneway;
 
+    public boolean isOneway() {
+        return false;
+    }
+
+    public void setOneway(boolean oneway) {
+        this.oneway = oneway;
+    }
     public int getReqID() {
         return reqID;
     }
@@ -26,11 +34,11 @@ public class RemoteCommand {
         isReq = req;
     }
 
-    public String getType() {
+    public int getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(int type) {
         this.type = type;
     }
 

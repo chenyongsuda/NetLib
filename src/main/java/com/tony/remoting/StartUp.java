@@ -18,7 +18,7 @@ public class StartUp {
         server.setPort(9999);
         server.start();
         
-        final NettyRemoteClient client = new NettyRemoteClient();
+        final NettyRemoteClient client = new NettyRemoteClient(null);
         client.setHost("127.0.0.1");
         client.setPort(9999);
         client.start();
@@ -43,7 +43,7 @@ public class StartUp {
 //                }
                 RemoteCommand cmd = new RemoteCommand();
                 cmd.setReq(true);
-                cmd.setType("1");
+                cmd.setType(1);
                 cmd.setInfos("hahahahaha");
                 HelloRequest req = new HelloRequest();
                 req.setName("tony");

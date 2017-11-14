@@ -1,11 +1,11 @@
 package com.tony.remoting.absinterface;
 
+import com.tony.remoting.common.Pair;
 import com.tony.remoting.exception.RemotingSendRequestException;
 import com.tony.remoting.exception.RemotingTimeoutException;
 import com.tony.remoting.exception.RemotingTooMuchRequestException;
-import com.tony.remoting.netty.MsgPackageDecoding;
+import com.tony.remoting.netty.NettyEvent;
 import com.tony.remoting.protocal.RemoteCommand;
-import com.tony.remoting.protocal.body.HelloRequest;
 import com.tony.remoting.util.RemotingHelper;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -14,7 +14,6 @@ import io.netty.channel.ChannelHandlerContext;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.ReadOnlyBufferException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,11 +30,17 @@ public abstract class RemotingAbstract {
 
     private final Timer timer = new Timer("CleanResponseTimer", true);
     protected abstract  ExecutorService getcallbackExecuteService();
+    protected abstract  ExecutorService getDefaultWorkingService();
+    protected abstract  ChannelEventListener getChannelEventListener();
+    protected final NettyEventExecutor eventExecutor = new NettyEventExecutor();
     /**
      * This map caches all on-going requests.
      */
     protected final ConcurrentMap<Integer /* opaque */, ResponseFuture> responseTable =
             new ConcurrentHashMap<Integer, ResponseFuture>(256);
+
+    protected final HashMap<Integer/* request code */, Pair<RemoteRequestProcessor, ExecutorService>> processorTable =
+            new HashMap<Integer, Pair<RemoteRequestProcessor, ExecutorService>>(64);
 
     public RemotingAbstract(){
         semaphoreOneway = new Semaphore(28);
@@ -51,6 +56,23 @@ public abstract class RemotingAbstract {
                                       }
                                   }
                 , 3 * 1000, 1000);
+    }
+
+    public void startEventExecute(){
+        this.eventExecutor.start();
+    }
+
+    public void putNettyEvent(final NettyEvent event){
+        this.eventExecutor.putNettyEvent(event);
+    }
+
+    public void registerProcessor(int requestCode, RemoteRequestProcessor processor, ExecutorService executor) {
+        Pair<RemoteRequestProcessor, ExecutorService> pair = new Pair<RemoteRequestProcessor, ExecutorService>(processor, executor);
+        this.processorTable.put(requestCode, pair);
+    }
+    public void registerDefaultProcessor(int requestCode, RemoteRequestProcessor processor) {
+        Pair<RemoteRequestProcessor, ExecutorService> pair = new Pair<RemoteRequestProcessor, ExecutorService>(processor, null);
+        this.processorTable.put(requestCode, pair);
     }
 
     public void scanResponseTable() {
@@ -96,10 +118,10 @@ public abstract class RemotingAbstract {
             RemoteCommand cmd = rf.waitResponse();
             if (null == cmd){
                 if (rf.isSendFinish()){
-                    throw new RemotingSendRequestException(RemotingHelper.parseSocketAddressAddr(addr),rf.getCause());
+                    throw new RemotingTimeoutException(RemotingHelper.parseSocketAddressAddr(addr),timeoutMills,rf.getCause());
                 }
                 else{
-                    throw new RemotingTimeoutException(RemotingHelper.parseSocketAddressAddr(addr),timeoutMills,rf.getCause());
+                    throw new RemotingSendRequestException(RemotingHelper.parseSocketAddressAddr(addr),rf.getCause());
                 }
             }
             return cmd;
@@ -214,17 +236,28 @@ public abstract class RemotingAbstract {
             processResponse(ctx,msg);
         }
     }
-    public void processRequest(ChannelHandlerContext ctx, RemoteCommand msg) throws IOException {
-        if (msg.getType().equals("1")){
-            HelloRequest req = MsgPackageDecoding.DecodeBody(HelloRequest.class,msg);
-//            try {
-//                Thread.sleep(1900);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-            msg.setReq(false);
-            ctx.writeAndFlush(msg);
+    public void processRequest(final ChannelHandlerContext ctx,final RemoteCommand msg) throws IOException {
+        int type = msg.getType();
+        final Pair<RemoteRequestProcessor, ExecutorService> matched = this.processorTable.get(type);
+        if (matched != null){
+            ExecutorService service = matched.getObject2() == null ? getDefaultWorkingService(): matched.getObject2();
+            service.submit(new Runnable() {
+                public void run() {
+                    try {
+                        final RemoteCommand response = matched.getObject1().processRequest(ctx,msg);
+                        if (!msg.isOneway()){
+                            ctx.writeAndFlush(response);
+                        }
+                    } catch (Exception e) {
+
+                    }
+                }
+            });
         }
+        else{
+
+        }
+
     }
 
     public void processResponse(ChannelHandlerContext ctx, RemoteCommand msg) throws IOException {
@@ -242,7 +275,56 @@ public abstract class RemotingAbstract {
 
         }
     }
+
+    class NettyEventExecutor extends Thread {
+        private final LinkedBlockingQueue<NettyEvent> eventQueue = new LinkedBlockingQueue<NettyEvent>();
+        private final int maxSize = 10000;
+
+        public NettyEventExecutor(){
+
+            this.setDaemon(true);
+        }
+
+        public void putNettyEvent(final NettyEvent event) {
+            if (this.eventQueue.size() <= maxSize) {
+                this.eventQueue.add(event);
+            } else {
+            }
+        }
+
+        @Override
+        public void run() {
+            final ChannelEventListener listener = getChannelEventListener();
+            while (true) {
+                try {
+                    NettyEvent event = this.eventQueue.poll(3000, TimeUnit.MILLISECONDS);
+                    if (event != null && listener != null) {
+                        switch (event.getType()) {
+                            case IDLE:
+                                listener.onChannelIdle(event.getRemoteAddr(), event.getChannel());
+                                break;
+                            case CLOSE:
+                                listener.onChannelClose(event.getRemoteAddr(), event.getChannel());
+                                break;
+                            case CONNECT:
+                                listener.onChannelConnect(event.getRemoteAddr(), event.getChannel());
+                                break;
+                            case EXCEPTION:
+                                listener.onChannelException(event.getRemoteAddr(), event.getChannel());
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                } catch (Exception e) {
+
+                }
+            }
+        }
+    }
 }
+
+
 
 class SemaphoreReleaseOnlyOnce {
     private final AtomicBoolean released = new AtomicBoolean(false);

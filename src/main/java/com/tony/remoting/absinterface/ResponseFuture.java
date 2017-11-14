@@ -52,7 +52,7 @@ public class ResponseFuture {
         }
     }
 
-    
+
     public boolean isTimeout(){
         return timeout < (System.currentTimeMillis() - beginTime);
     }

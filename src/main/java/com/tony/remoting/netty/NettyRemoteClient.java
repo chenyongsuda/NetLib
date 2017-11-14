@@ -1,5 +1,6 @@
 package com.tony.remoting.netty;
 
+import com.tony.remoting.absinterface.ChannelEventListener;
 import com.tony.remoting.absinterface.InvokeCallback;
 import com.tony.remoting.absinterface.RemoteClient;
 import com.tony.remoting.absinterface.RemotingAbstract;
@@ -7,6 +8,7 @@ import com.tony.remoting.exception.RemotingSendRequestException;
 import com.tony.remoting.exception.RemotingTimeoutException;
 import com.tony.remoting.exception.RemotingTooMuchRequestException;
 import com.tony.remoting.protocal.RemoteCommand;
+import com.tony.remoting.util.RemotingHelper;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -16,9 +18,14 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by chnho02796 on 2017/10/31.
@@ -30,7 +37,31 @@ public class NettyRemoteClient extends RemotingAbstract implements RemoteClient 
     private String host;
     private int port;
     private Channel channel;
+    private ExecutorService publicExecutor;
+    private ExecutorService defaultWorkExecute;
+    private ChannelEventListener listener;
 
+    public NettyRemoteClient(ChannelEventListener listener){
+        this.listener = listener;
+        this.publicExecutor = Executors.newFixedThreadPool(10, new ThreadFactory() {
+            private AtomicInteger threadIndex = new AtomicInteger(0);
+
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "NettyClientPublicExecutor_" + this.threadIndex.incrementAndGet());
+            }
+        });
+
+        this.defaultWorkExecute = Executors.newFixedThreadPool(10, new ThreadFactory() {
+            private AtomicInteger threadIndex = new AtomicInteger(0);
+
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "NettyClientWorkExecutor_" + this.threadIndex.incrementAndGet());
+            }
+        });
+        if (null != listener){
+            this.startEventExecute();
+        }
+    }
 
     public void start() {
         bootstrap = new Bootstrap();
@@ -131,7 +162,15 @@ public class NettyRemoteClient extends RemotingAbstract implements RemoteClient 
     }
 
     protected ExecutorService getcallbackExecuteService() {
-        return null;
+        return this.publicExecutor;
+    }
+
+    protected ExecutorService getDefaultWorkingService() {
+        return this.defaultWorkExecute;
+    }
+
+    protected ChannelEventListener getChannelEventListener() {
+        return this.listener;
     }
 
 
@@ -140,6 +179,43 @@ public class NettyRemoteClient extends RemotingAbstract implements RemoteClient 
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             RemoteCommand cmd = (RemoteCommand) msg;
             processCMD(ctx,cmd);
+        }
+    }
+
+    class NettyConnectHandler extends ChannelInboundHandlerAdapter {
+        @Override
+        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            super.channelActive(ctx);
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            NettyRemoteClient.this.putNettyEvent(new NettyEvent(NettyEventType.CONNECT, remoteAddress, ctx.channel()));
+        }
+
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+            ctx.close();
+            super.channelInactive(ctx);
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            NettyRemoteClient.this.putNettyEvent(new NettyEvent(NettyEventType.CLOSE, remoteAddress, ctx.channel()));
+        }
+
+        @Override
+        public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+            if (evt instanceof IdleStateEvent) {
+                IdleStateEvent event = (IdleStateEvent) evt;
+                if (event.state().equals(IdleState.ALL_IDLE)) {
+                    final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                    NettyRemoteClient.this.putNettyEvent(new NettyEvent(NettyEventType.IDLE, remoteAddress, ctx.channel()));
+                }
+            }
+            super.userEventTriggered(ctx, evt);
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            ctx.close();
+            super.exceptionCaught(ctx, cause);
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            NettyRemoteClient.this.putNettyEvent(new NettyEvent(NettyEventType.EXCEPTION, remoteAddress, ctx.channel()));
         }
     }
 }
