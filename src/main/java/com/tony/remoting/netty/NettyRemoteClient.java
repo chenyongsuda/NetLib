@@ -5,6 +5,7 @@ import com.tony.remoting.absinterface.RemoteClient;
 import com.tony.remoting.absinterface.RemotingAbstract;
 import com.tony.remoting.exception.RemotingSendRequestException;
 import com.tony.remoting.exception.RemotingTimeoutException;
+import com.tony.remoting.exception.RemotingTooMuchRequestException;
 import com.tony.remoting.protocal.RemoteCommand;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -16,6 +17,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.timeout.IdleStateHandler;
+
+import java.util.concurrent.ExecutorService;
 
 /**
  * Created by chnho02796 on 2017/10/31.
@@ -119,12 +122,16 @@ public class NettyRemoteClient extends RemotingAbstract implements RemoteClient 
         return super.sendRequestSync(this.channel, request, timeoutMills);
     }
 
-    public void sendRequestAsync(RemoteCommand request, long timeoutMills, InvokeCallback callback) {
+    public void sendRequestAsync(RemoteCommand request, long timeoutMills, InvokeCallback callback) throws InterruptedException, RemotingTimeoutException, RemotingTooMuchRequestException, RemotingSendRequestException {
         super.sendRequestAsync(this.channel, request, timeoutMills, callback);
     }
 
-    public void sendRequestOneWay(RemoteCommand request, long timeoutMills) {
+    public void sendRequestOneWay(RemoteCommand request, long timeoutMills) throws InterruptedException, RemotingTimeoutException, RemotingTooMuchRequestException, RemotingSendRequestException {
         super.sendRequestOneWay(this.channel, request, timeoutMills);
+    }
+
+    protected ExecutorService getcallbackExecuteService() {
+        return null;
     }
 
 

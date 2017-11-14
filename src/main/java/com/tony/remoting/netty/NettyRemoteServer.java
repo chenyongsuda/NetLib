@@ -14,6 +14,7 @@ import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.timeout.IdleStateHandler;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Created by chnho02796 on 2017/10/31.
@@ -72,6 +73,10 @@ public class NettyRemoteServer extends RemotingAbstract implements RemoteService
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    protected ExecutorService getcallbackExecuteService() {
+        return null;
     }
 
 

@@ -33,14 +33,14 @@ public class StartUp {
                 }
         );
 
-        for (int i = 1; i< 100; i++){
+        for (int i = 1; i< 10000; i++){
             try {
-                if (i == 6){
-                    Thread.sleep(10000);
-                }
-                else {
-                    Thread.sleep(2000);
-                }
+//                if (i == 6){
+//                    Thread.sleep(10000);
+//                }
+//                else {
+//                    Thread.sleep(2000);
+//                }
                 RemoteCommand cmd = new RemoteCommand();
                 cmd.setReq(true);
                 cmd.setType("1");
